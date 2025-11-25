@@ -9,8 +9,8 @@ import CrawlerResult from '@/components/CrawlerResult'
 export default function Home() {
   const { logs, result, hostedUrl, isScanning, startScan, stopScan } = useCrawler()
 
-  const handleStartScan = (url: string, maxPages: number, descLength: number) => {
-    startScan({ url, maxPages, descLength })
+  const handleStartScan = (url: string, maxPages: number, descLength: number, enableAutoUpdate: boolean, recrawlInterval: number) => {
+    startScan({ url, maxPages, descLength, enableAutoUpdate, recrawlIntervalMinutes: recrawlInterval })
   }
 
   return (

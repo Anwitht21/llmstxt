@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 interface CrawlerControlsProps {
-  onStartScan: (url: string, maxPages: number, descLength: number) => void
+  onStartScan: (url: string, maxPages: number, descLength: number, enableAutoUpdate: boolean, recrawlInterval: number) => void
   onStopScan: () => void
   isScanning: boolean
 }
@@ -12,11 +12,13 @@ export default function CrawlerControls({ onStartScan, onStopScan, isScanning }:
   const [url, setUrl] = useState('https://example.com')
   const [maxPages, setMaxPages] = useState(50)
   const [descLength, setDescLength] = useState(500)
+  const [enableAutoUpdate, setEnableAutoUpdate] = useState(false)
+  const [recrawlInterval, setRecrawlInterval] = useState(10080)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!isScanning) {
-      onStartScan(url, maxPages, descLength)
+      onStartScan(url, maxPages, descLength, enableAutoUpdate, recrawlInterval)
     }
   }
 
@@ -61,6 +63,34 @@ export default function CrawlerControls({ onStartScan, onStopScan, isScanning }:
           />
         </div>
       </div>
+
+      <div className="input-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={enableAutoUpdate}
+            onChange={(e) => setEnableAutoUpdate(e.target.checked)}
+            disabled={isScanning}
+          />
+          {' '}Enable automated updates
+        </label>
+      </div>
+
+      {enableAutoUpdate && (
+        <div className="input-group">
+          <label htmlFor="recrawlInterval">Recrawl Interval</label>
+          <select
+            id="recrawlInterval"
+            value={recrawlInterval}
+            onChange={(e) => setRecrawlInterval(Number(e.target.value))}
+            disabled={isScanning}
+          >
+            <option value={1440}>Daily</option>
+            <option value={10080}>Weekly</option>
+            <option value={43200}>Monthly</option>
+          </select>
+        </div>
+      )}
 
       <div className="button-group">
         {!isScanning ? (

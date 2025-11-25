@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     r2_secret_key: str | None = None
     r2_bucket: str | None = None
     r2_public_domain: str | None = None
+    supabase_url: str | None = None
+    supabase_key: str | None = None
+    cron_secret: str | None = None
 
     class Config:
         env_file = ".env"

@@ -1,10 +1,14 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 import json
+import hashlib
 from crawler import LLMCrawler, PageInfo
 from storage import save_llms_txt
 from config import settings
+from database import save_site_metadata
+from recrawl import recrawl_due_sites
+from formatter import format_llms_txt
 
 app = FastAPI()
 
@@ -20,45 +24,13 @@ app.add_middleware(
 async def health():
     return {"status": "ok"}
 
-def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
-    if not pages:
-        return f"# {base_url}\n\n> No content available"
+@app.post("/internal/cron/recrawl")
+async def trigger_recrawl(x_cron_secret: str = Header(None)):
+    if not settings.cron_secret or x_cron_secret != settings.cron_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
-    homepage = pages[0]
-    lines = [
-        f"# {homepage.title}",
-        "",
-        f"> {homepage.description or homepage.snippet[:200]}",
-        ""
-    ]
-
-    sections = {}
-    for page in pages[1:]:
-        path_parts = page.url.replace(base_url, "").strip("/").split("/")
-        section = path_parts[0] if path_parts and path_parts[0] and path_parts[0] not in ['http:', 'https:'] else "Main"
-
-        if section not in sections:
-            sections[section] = []
-
-        desc = ""
-        if page.description:
-            truncated = page.description[:150]
-            desc = f": {truncated}..." if len(page.description) > 150 else f": {truncated}"
-        sections[section].append(f"- [{page.title}]({page.url}){desc}")
-
-    if not sections:
-        return "\n".join(lines)
-
-    for section_name, links in sorted(sections.items()):
-        clean_name = section_name.replace('-', ' ').replace('_', ' ').title()
-        lines.extend([
-            f"## {clean_name}",
-            "",
-            *links,
-            ""
-        ])
-
-    return "\n".join(lines)
+    results = await recrawl_due_sites()
+    return {"status": "completed", "results": results}
 
 @app.websocket("/ws/crawl")
 async def websocket_crawl(websocket: WebSocket):
@@ -84,6 +56,21 @@ async def websocket_crawl(websocket: WebSocket):
         hosted_url = await save_llms_txt(url, llms_txt, log)
         if hosted_url:
             await websocket.send_json({"type": "url", "content": hosted_url})
+
+            enable_auto_update = payload.get('enableAutoUpdate', False)
+            recrawl_interval = payload.get('recrawlIntervalMinutes', 10080)
+
+            if enable_auto_update:
+                llms_hash = hashlib.sha256(llms_txt.encode()).hexdigest()
+                await save_site_metadata(
+                    base_url=url,
+                    recrawl_interval_minutes=recrawl_interval,
+                    max_pages=max_pages,
+                    desc_length=desc_length,
+                    latest_llms_hash=llms_hash,
+                    latest_llms_url=hosted_url
+                )
+                await log("Auto-update enabled for this site")
 
     except WebSocketDisconnect:
         pass

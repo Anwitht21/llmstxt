@@ -6,6 +6,8 @@ interface CrawlPayload {
   url: string
   maxPages: number
   descLength: number
+  enableAutoUpdate?: boolean
+  recrawlIntervalMinutes?: number
 }
 
 export function useCrawler() {
