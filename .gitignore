@@ -33,6 +33,9 @@ yarn-error.log*
 out/
 build/
 dist/
+next-env.d.ts
+.turbo/
+*.tsbuildinfo
 
 # Environment
 .env
