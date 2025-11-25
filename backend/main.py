@@ -35,7 +35,7 @@ def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
     sections = {}
     for page in pages[1:]:
         path_parts = page.url.replace(base_url, "").strip("/").split("/")
-        section = path_parts[0] if path_parts and path_parts[0] else "Main"
+        section = path_parts[0] if path_parts and path_parts[0] and path_parts[0] not in ['http:', 'https:'] else "Main"
 
         if section not in sections:
             sections[section] = []
@@ -50,8 +50,9 @@ def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
         return "\n".join(lines)
 
     for section_name, links in sorted(sections.items()):
+        clean_name = section_name.replace('-', ' ').replace('_', ' ').title()
         lines.extend([
-            f"## {section_name.replace('-', ' ').title()}",
+            f"## {clean_name}",
             "",
             *links,
             ""

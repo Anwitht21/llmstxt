@@ -3,7 +3,7 @@ from typing import Callable
 import httpx
 from bs4 import BeautifulSoup
 from .state import CrawlState
-from .scout import normalize_url, extract_links
+from .scout import normalize_url, extract_links, parse_sitemap
 from .text import extract_title, extract_description, extract_text, create_snippet
 
 @dataclass
@@ -20,10 +20,31 @@ class LLMCrawler:
         self.log = log_callback
         self.state.queue.append(self.state.base_url)
 
+    async def _try_sitemap(self, client: httpx.AsyncClient) -> list[str]:
+        for path in ['/sitemap.xml', '/sitemap_index.xml']:
+            try:
+                resp = await client.get(f"{self.state.base_url}{path}")
+                if resp.status_code == 200:
+                    return parse_sitemap(resp.text, self.state.base_url)
+            except:
+                continue
+        return []
+
     async def run(self) -> list[PageInfo]:
         pages = []
 
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            sitemap_urls = await self._try_sitemap(client)
+            if sitemap_urls:
+                await self.log(f"Using sitemap: found {len(sitemap_urls)} URLs")
+                self.state.queue.clear()
+                self.state.queue.append(self.state.base_url)
+                for url in sitemap_urls[:self.state.max_pages]:
+                    if url != self.state.base_url:
+                        self.state.queue.append(url)
+            else:
+                await self.log("No sitemap found, using BFS crawl")
+
             while self.state.queue and len(self.state.visited) < self.state.max_pages:
                 url = self.state.queue.popleft()
 
