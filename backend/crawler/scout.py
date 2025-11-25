@@ -1,7 +1,7 @@
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 
-SKIP_PATTERNS = ['/logout', '/login', '/admin', '/api/', '.pdf', '.zip', '.jpg', '.png', '.gif']
+SKIP_PATTERNS = ['/logout', '/login', '/admin', '/api/', '/jobs/', '.pdf', '.zip', '.jpg', '.png', '.gif']
 
 def normalize_url(url: str) -> str:
     parsed = urlparse(url)

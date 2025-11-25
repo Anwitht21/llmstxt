@@ -21,20 +21,39 @@ async def health():
     return {"status": "ok"}
 
 def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
-    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    if not pages:
+        return f"# {base_url}\n\n> No content available"
+
+    homepage = pages[0]
     lines = [
-        f"# llms.txt for {base_url}",
-        f"# Generated: {timestamp}",
+        f"# {homepage.title}",
+        "",
+        f"> {homepage.description or homepage.snippet[:200]}",
         ""
     ]
 
-    for page in pages:
+    sections = {}
+    for page in pages[1:]:
+        path_parts = page.url.replace(base_url, "").strip("/").split("/")
+        section = path_parts[0] if path_parts and path_parts[0] else "Main"
+
+        if section not in sections:
+            sections[section] = []
+
+        desc = ""
+        if page.description:
+            truncated = page.description[:150]
+            desc = f": {truncated}..." if len(page.description) > 150 else f": {truncated}"
+        sections[section].append(f"- [{page.title}]({page.url}){desc}")
+
+    if not sections:
+        return "\n".join(lines)
+
+    for section_name, links in sorted(sections.items()):
         lines.extend([
-            "[[page]]",
-            f'url = "{page.url}"',
-            f'title = "{page.title}"',
-            f'description = "{page.description}"',
-            f'snippet = """{page.snippet}"""',
+            f"## {section_name.replace('-', ' ').title()}",
+            "",
+            *links,
             ""
         ])
 

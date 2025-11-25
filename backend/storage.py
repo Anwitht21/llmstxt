@@ -24,7 +24,7 @@ async def save_llms_txt(base_url: str, content: str, log: Callable) -> str | Non
             Bucket=settings.r2_bucket,
             Key=object_key,
             Body=content.encode(),
-            ContentType='text/plain'
+            ContentType='text/markdown'
         )
 
         if settings.r2_public_domain:
