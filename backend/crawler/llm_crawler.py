@@ -31,7 +31,7 @@ class LLMCrawler:
                     continue
 
                 try:
-                    self.log(f"Visiting: {url}")
+                    await self.log(f"Visiting: {url}")
                     response = await client.get(url)
                     response.raise_for_status()
 
@@ -57,8 +57,8 @@ class LLMCrawler:
                             self.state.queue.append(link)
 
                 except Exception as e:
-                    self.log(f"Error crawling {url}: {str(e)}")
+                    await self.log(f"Error crawling {url}: {str(e)}")
                     self.state.visited.add(url)
 
-        self.log(f"Crawl complete: {len(pages)} pages")
+        await self.log(f"Crawl complete: {len(pages)} pages")
         return pages

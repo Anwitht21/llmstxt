@@ -16,7 +16,7 @@ export function useCrawler() {
   const wsRef = useRef<WebSocket | null>(null)
 
   const startScan = useCallback((payload: CrawlPayload) => {
-    setLogs([])
+    setLogs(["Connecting to crawler..."])
     setResult("")
     setHostedUrl("")
     setIsScanning(true)
@@ -26,6 +26,7 @@ export function useCrawler() {
     wsRef.current = ws
 
     ws.onopen = () => {
+      setLogs((prev) => [...prev, `Starting crawl of ${payload.url}...`])
       ws.send(JSON.stringify(payload))
     }
 
@@ -43,8 +44,8 @@ export function useCrawler() {
       }
     }
 
-    ws.onerror = (error) => {
-      setLogs((prev) => [...prev, `Connection error: ${error}`])
+    ws.onerror = () => {
+      setLogs((prev) => [...prev, "Connection error - is backend running?"])
       setIsScanning(false)
     }
 
