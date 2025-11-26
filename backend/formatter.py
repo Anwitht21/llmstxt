@@ -1,5 +1,18 @@
 from crawler import PageInfo
 
+SECONDARY_PATH_PATTERNS = [
+    '/privacy', '/terms', '/legal', '/cookie', '/disclaimer',
+    '/sitemap', '/changelog', '/release',
+    '/contributing', '/code-of-conduct', '/governance', '/license',
+    '/about', '/team', '/career', '/job', '/contact', '/company',
+    '/twitter', '/github', '/linkedin', '/facebook', '/social',
+    '/archive', '/old', '/legacy', '/deprecated',
+]
+
+def is_secondary_section(section_name: str) -> bool:
+    section_lower = section_name.lower()
+    return any(pattern.strip('/') in section_lower for pattern in SECONDARY_PATH_PATTERNS)
+
 def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
     if not pages:
         return f"# {base_url}\n\n> No content available"
@@ -29,7 +42,16 @@ def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
     if not sections:
         return "\n".join(lines)
 
-    for section_name, links in sorted(sections.items()):
+    primary_sections = {}
+    secondary_sections = {}
+
+    for section_name, links in sections.items():
+        if is_secondary_section(section_name):
+            secondary_sections[section_name] = links
+        else:
+            primary_sections[section_name] = links
+
+    for section_name, links in sorted(primary_sections.items()):
         clean_name = section_name.replace('-', ' ').replace('_', ' ').title()
         lines.extend([
             f"## {clean_name}",
@@ -37,5 +59,16 @@ def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
             *links,
             ""
         ])
+
+    if secondary_sections:
+        lines.extend([
+            "## Optional",
+            "",
+        ])
+
+        for section_name, links in sorted(secondary_sections.items()):
+            lines.extend(links)
+
+        lines.append("")
 
     return "\n".join(lines)
