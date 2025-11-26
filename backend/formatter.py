@@ -1,4 +1,5 @@
 from crawler import PageInfo
+from urllib.parse import urlparse, urlunparse
 
 SECONDARY_PATH_PATTERNS = [
     '/privacy', '/terms', '/legal', '/cookie', '/disclaimer',
@@ -9,65 +10,108 @@ SECONDARY_PATH_PATTERNS = [
     '/archive', '/old', '/legacy', '/deprecated',
 ]
 
+def clean_url(url: str) -> str:
+    parsed = urlparse(url)
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
+
+def truncate(text: str, length: int = 150) -> str:
+    if not text:
+        return ""
+    text = text.strip()
+    return f"{text[:length]}..." if len(text) > length else text
+
+def get_site_title(homepage: PageInfo, base_url: str) -> str:
+    title = homepage.title.strip() if homepage.title else ""
+
+    generic_titles = {'home', 'welcome', 'index', ''}
+    if title.lower() in generic_titles:
+        domain = urlparse(base_url).netloc
+        domain = domain.replace('www.', '').replace('.com', '').replace('.org', '')
+        return domain.replace('.', ' ').title()
+
+    return truncate(title, 80)
+
+def get_summary(homepage: PageInfo) -> str:
+    desc = homepage.description or homepage.snippet or "No description available"
+    return truncate(desc.strip(), 200)
+
+def clean_section_name(name: str) -> str:
+    if not name or not name.strip():
+        return "Main"
+
+    name = name.strip()
+    abbrevs = {'api', 'rest', 'graphql', 'sdk', 'cli', 'ui', 'ux', 'faq', 'rss'}
+
+    name = name.replace('-', ' ').replace('_', ' ')
+    words = name.split()
+
+    return ' '.join(
+        w.upper() if w.lower() in abbrevs else w.capitalize()
+        for w in words
+    )
+
 def is_secondary_section(section_name: str) -> bool:
     section_lower = section_name.lower()
     return any(pattern.strip('/') in section_lower for pattern in SECONDARY_PATH_PATTERNS)
 
 def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
     if not pages:
-        return f"# {base_url}\n\n> No content available"
+        domain = urlparse(base_url).netloc
+        return f"# {domain}\n\n> No content available"
 
     homepage = pages[0]
+
     lines = [
-        f"# {homepage.title}",
+        f"# {get_site_title(homepage, base_url)}",
         "",
-        f"> {homepage.description or homepage.snippet[:200]}",
+        f"> {get_summary(homepage)}",
         ""
     ]
 
     sections = {}
     for page in pages[1:]:
-        path_parts = page.url.replace(base_url, "").strip("/").split("/")
-        section = path_parts[0] if path_parts and path_parts[0] and path_parts[0] not in ['http:', 'https:'] else "Main"
+        clean = clean_url(page.url)
+        path_parts = clean.replace(base_url, "").strip("/").split("/")
+        section = path_parts[0] if path_parts and path_parts[0] else "main"
 
         if section not in sections:
             sections[section] = []
 
-        desc = ""
-        if page.description:
-            truncated = page.description[:150]
-            desc = f": {truncated}..." if len(page.description) > 150 else f": {truncated}"
-        sections[section].append(f"- [{page.title}]({page.url}){desc}")
+        desc = truncate(page.description, 150) if page.description else ""
+        link_text = f"[{page.title}]({clean})"
+        full_link = f"- {link_text}: {desc}" if desc else f"- {link_text}"
+
+        sections[section].append(full_link)
 
     if not sections:
         return "\n".join(lines)
 
-    primary_sections = {}
-    secondary_sections = {}
+    primary = {}
+    secondary = {}
 
     for section_name, links in sections.items():
         if is_secondary_section(section_name):
-            secondary_sections[section_name] = links
+            secondary[section_name] = links
         else:
-            primary_sections[section_name] = links
+            primary[section_name] = links
 
-    for section_name, links in sorted(primary_sections.items()):
-        clean_name = section_name.replace('-', ' ').replace('_', ' ').title()
+    for section_name in sorted(primary.keys()):
+        clean_name = clean_section_name(section_name)
         lines.extend([
             f"## {clean_name}",
             "",
-            *links,
+            *primary[section_name],
             ""
         ])
 
-    if secondary_sections:
+    if secondary:
         lines.extend([
             "## Optional",
             "",
         ])
 
-        for section_name, links in sorted(secondary_sections.items()):
-            lines.extend(links)
+        for section_name in sorted(secondary.keys()):
+            lines.extend(secondary[section_name])
 
         lines.append("")
 
