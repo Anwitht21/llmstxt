@@ -8,7 +8,7 @@ from storage import save_llms_txt
 from config import settings
 from database import save_site_metadata
 from recrawl import recrawl_due_sites
-from formatter import format_llms_txt
+from formatter import format_llms_txt, get_md_url_map
 
 app = FastAPI()
 
@@ -50,7 +50,13 @@ async def websocket_crawl(websocket: WebSocket):
         crawler = LLMCrawler(url, max_pages, desc_length, log)
         pages = await crawler.run()
 
-        llms_txt = format_llms_txt(url, pages)
+        await log("Checking for .md versions of pages...")
+        md_url_map = await get_md_url_map(pages)
+        md_count = sum(1 for orig, md in md_url_map.items() if orig != md)
+        if md_count > 0:
+            await log(f"Found {md_count} pages with .md versions")
+
+        llms_txt = format_llms_txt(url, pages, md_url_map)
         await websocket.send_json({"type": "result", "content": llms_txt})
 
         hosted_url = await save_llms_txt(url, llms_txt, log)

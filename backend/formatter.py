@@ -1,5 +1,7 @@
 from crawler import PageInfo
 from urllib.parse import urlparse, urlunparse
+import httpx
+from typing import Dict
 
 SECONDARY_PATH_PATTERNS = [
     '/privacy', '/terms', '/legal', '/cookie', '/disclaimer',
@@ -13,6 +15,53 @@ SECONDARY_PATH_PATTERNS = [
 def clean_url(url: str) -> str:
     parsed = urlparse(url)
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', ''))
+
+def get_md_url(url: str) -> str:
+    parsed = urlparse(url)
+    path = parsed.path
+
+    if path.endswith('.html'):
+        md_path = f"{path}.md"
+    elif path.endswith('/') or not path:
+        md_path = f"{path}index.html.md" if path.endswith('/') else f"{path}/index.html.md"
+    else:
+        md_path = f"{path}.md"
+
+    return urlunparse((parsed.scheme, parsed.netloc, md_path, '', '', ''))
+
+async def check_md_exists(url: str, timeout: float = 5.0) -> bool:
+    md_url = get_md_url(url)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.head(md_url, follow_redirects=True)
+            return response.status_code == 200
+    except:
+        return False
+
+async def get_md_url_map(pages: list[PageInfo]) -> Dict[str, str]:
+    md_map = {}
+
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        async def check_url(page: PageInfo) -> tuple[str, str]:
+            clean = clean_url(page.url)
+            md_url = get_md_url(clean)
+            try:
+                response = await client.head(md_url, follow_redirects=True)
+                if response.status_code == 200:
+                    return (clean, md_url)
+            except:
+                pass
+            return (clean, clean)
+
+        import asyncio
+        results = await asyncio.gather(*[check_url(page) for page in pages], return_exceptions=True)
+
+        for result in results:
+            if isinstance(result, tuple):
+                original, md_or_original = result
+                md_map[original] = md_or_original
+
+    return md_map
 
 def truncate(text: str, length: int = 150) -> str:
     if not text:
@@ -54,7 +103,7 @@ def is_secondary_section(section_name: str) -> bool:
     section_lower = section_name.lower()
     return any(pattern.strip('/') in section_lower for pattern in SECONDARY_PATH_PATTERNS)
 
-def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
+def format_llms_txt(base_url: str, pages: list[PageInfo], md_url_map: Dict[str, str] = None) -> str:
     if not pages:
         domain = urlparse(base_url).netloc
         return f"# {domain}\n\n> No content available"
@@ -77,8 +126,10 @@ def format_llms_txt(base_url: str, pages: list[PageInfo]) -> str:
         if section not in sections:
             sections[section] = []
 
+        output_url = md_url_map.get(clean, clean) if md_url_map else clean
+
         desc = truncate(page.description, 150) if page.description else ""
-        link_text = f"[{page.title}]({clean})"
+        link_text = f"[{page.title}]({output_url})"
         full_link = f"- {link_text}: {desc}" if desc else f"- {link_text}"
 
         sections[section].append(full_link)
