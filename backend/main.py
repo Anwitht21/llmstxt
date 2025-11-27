@@ -47,7 +47,16 @@ async def websocket_crawl(websocket: WebSocket):
         async def log(message: str):
             await websocket.send_json({"type": "log", "content": message})
 
-        crawler = LLMCrawler(url, max_pages, desc_length, log)
+        crawler = LLMCrawler(
+            url,
+            max_pages,
+            desc_length,
+            log,
+            brightdata_api_key=settings.brightdata_api_key,
+            brightdata_enabled=settings.brightdata_enabled,
+            brightdata_zone=settings.brightdata_zone,
+            brightdata_password=settings.brightdata_password
+        )
         pages = await crawler.run()
 
         await log("Checking for .md versions of pages...")
