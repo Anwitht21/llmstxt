@@ -8,6 +8,8 @@ interface CrawlPayload {
   descLength: number
   enableAutoUpdate?: boolean
   recrawlIntervalMinutes?: number
+  llmEnhance?: boolean
+  useBrightdata?: boolean
 }
 
 export function useCrawler() {

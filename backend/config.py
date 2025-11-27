@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     brightdata_enabled: bool = True
     brightdata_zone: str = "scraping_browser1"
     brightdata_password: str | None = None
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "x-ai/grok-4.1-fast:free"
+    llm_enhancement_enabled: bool = False
+    llm_timeout_seconds: float = 30.0
+    llm_max_retries: int = 3
+    llm_temperature: float = 0.3
 
     class Config:
         env_file = ".env"

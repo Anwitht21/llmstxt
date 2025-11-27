@@ -43,6 +43,7 @@ async def websocket_crawl(websocket: WebSocket):
         url = str(payload['url'])
         max_pages = payload.get('maxPages', 50)
         desc_length = payload.get('descLength', 500)
+        use_brightdata = payload.get('useBrightdata', settings.brightdata_enabled)
 
         async def log(message: str):
             await websocket.send_json({"type": "log", "content": message})
@@ -53,7 +54,7 @@ async def websocket_crawl(websocket: WebSocket):
             desc_length,
             log,
             brightdata_api_key=settings.brightdata_api_key,
-            brightdata_enabled=settings.brightdata_enabled,
+            brightdata_enabled=use_brightdata,
             brightdata_zone=settings.brightdata_zone,
             brightdata_password=settings.brightdata_password
         )
@@ -66,6 +67,23 @@ async def websocket_crawl(websocket: WebSocket):
             await log(f"Found {md_count} pages with .md versions")
 
         llms_txt = format_llms_txt(url, pages, md_url_map)
+
+        llm_enhance = payload.get('llmEnhance', False)
+        if llm_enhance and settings.llm_enhancement_enabled:
+            try:
+                await log("Enhancing with LLM...")
+                from llm_processor import LLMProcessor
+                processor = LLMProcessor(log)
+                result = await processor.process(llms_txt)
+
+                if result.success:
+                    llms_txt = result.output
+                    await log(f"LLM enhancement: {result.stats}")
+                else:
+                    await log(f"LLM enhancement failed, using original: {result.error}")
+            except Exception as e:
+                await log(f"LLM enhancement error: {e}")
+
         await websocket.send_json({"type": "result", "content": llms_txt})
 
         hosted_url = await save_llms_txt(url, llms_txt, log)

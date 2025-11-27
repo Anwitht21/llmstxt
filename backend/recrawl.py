@@ -3,6 +3,7 @@ from crawler import LLMCrawler
 from storage import save_llms_txt
 from database import get_due_sites, update_crawl_result
 from formatter import format_llms_txt, get_md_url_map
+from config import settings
 
 async def no_op_log(message: str):
     pass
@@ -26,6 +27,18 @@ async def recrawl_due_sites() -> dict:
             md_url_map = await get_md_url_map(pages)
 
             llms_txt = format_llms_txt(site.base_url, pages, md_url_map)
+
+            if settings.llm_enhancement_enabled:
+                try:
+                    from llm_processor import LLMProcessor
+                    processor = LLMProcessor(no_op_log)
+                    result = await processor.process(llms_txt)
+
+                    if result.success:
+                        llms_txt = result.output
+                except Exception as e:
+                    print(f"LLM enhancement error for {site.base_url}: {e}")
+
             new_hash = hashlib.sha256(llms_txt.encode()).hexdigest()
 
             if new_hash != site.latest_llms_hash:

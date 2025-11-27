@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 interface CrawlerControlsProps {
-  onStartScan: (url: string, maxPages: number, descLength: number, enableAutoUpdate: boolean, recrawlInterval: number) => void
+  onStartScan: (url: string, maxPages: number, descLength: number, enableAutoUpdate: boolean, recrawlInterval: number, llmEnhance: boolean, useBrightdata: boolean) => void
   onStopScan: () => void
   isScanning: boolean
 }
@@ -14,11 +14,13 @@ export default function CrawlerControls({ onStartScan, onStopScan, isScanning }:
   const [descLength, setDescLength] = useState(500)
   const [enableAutoUpdate, setEnableAutoUpdate] = useState(false)
   const [recrawlInterval, setRecrawlInterval] = useState(10080)
+  const [llmEnhance, setLlmEnhance] = useState(false)
+  const [useBrightdata, setUseBrightdata] = useState(true)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!isScanning) {
-      onStartScan(url, maxPages, descLength, enableAutoUpdate, recrawlInterval)
+      onStartScan(url, maxPages, descLength, enableAutoUpdate, recrawlInterval, llmEnhance, useBrightdata)
     }
   }
 
@@ -91,6 +93,30 @@ export default function CrawlerControls({ onStartScan, onStopScan, isScanning }:
           </select>
         </div>
       )}
+
+      <div className="input-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={llmEnhance}
+            onChange={(e) => setLlmEnhance(e.target.checked)}
+            disabled={isScanning}
+          />
+          {' '}Enhance with LLM (improves organization and descriptions)
+        </label>
+      </div>
+
+      <div className="input-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={useBrightdata}
+            onChange={(e) => setUseBrightdata(e.target.checked)}
+            disabled={isScanning}
+          />
+          {' '}Use browser scraping for JavaScript-heavy sites
+        </label>
+      </div>
 
       <div className="button-group">
         {!isScanning ? (
