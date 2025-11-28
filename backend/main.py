@@ -1,12 +1,13 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import hashlib
+import httpx
 from crawler import LLMCrawler, PageInfo
 from storage import save_llms_txt
 from config import settings
-from database import save_site_metadata
+from database import save_site_metadata, get_supabase_client
 from recrawl import recrawl_due_sites
 from formatter import format_llms_txt, get_md_url_map
 
@@ -31,6 +32,43 @@ async def trigger_recrawl(x_cron_secret: str = Header(None)):
 
     results = await recrawl_due_sites()
     return {"status": "completed", "results": results}
+
+@app.post("/internal/hooks/site-changed")
+async def trigger_site_recrawl(
+    request: Request,
+    base_url: str = Body(...),
+    webhook_secret: str = Body(None)
+):
+    try:
+        client = get_supabase_client()
+        if not client:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+
+        result = client.table("crawl_sites") \
+            .select("*") \
+            .eq("base_url", base_url) \
+            .execute()
+
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Site not enrolled")
+
+        site = result.data[0]
+
+        if site.get("webhook_secret") and webhook_secret != site.get("webhook_secret"):
+            raise HTTPException(status_code=401, detail="Invalid webhook secret")
+
+        now = datetime.now(timezone.utc)
+        client.table("crawl_sites").update({
+            "next_crawl_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }).eq("base_url", base_url).execute()
+
+        return {"status": "scheduled", "base_url": base_url, "next_crawl_at": now.isoformat()}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.websocket("/ws/crawl")
 async def websocket_crawl(websocket: WebSocket):
@@ -95,13 +133,31 @@ async def websocket_crawl(websocket: WebSocket):
 
             if enable_auto_update:
                 llms_hash = hashlib.sha256(llms_txt.encode()).hexdigest()
+
+                # Detect sentinel URL
+                sentinel_url = None
+                if hasattr(crawler, 'discovered_sitemap_url'):
+                    sentinel_url = crawler.discovered_sitemap_url
+                else:
+                    # Try to find sitemap
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        for path in ['/sitemap.xml', '/sitemap_index.xml']:
+                            try:
+                                resp = await client.head(f"{url}{path}")
+                                if resp.status_code == 200:
+                                    sentinel_url = f"{url}{path}"
+                                    break
+                            except:
+                                continue
+
                 await save_site_metadata(
                     base_url=url,
                     recrawl_interval_minutes=recrawl_interval,
                     max_pages=max_pages,
                     desc_length=desc_length,
                     latest_llms_hash=llms_hash,
-                    latest_llms_url=hosted_url
+                    latest_llms_url=hosted_url,
+                    sentinel_url=sentinel_url
                 )
                 await log("Auto-update enabled for this site")
 
