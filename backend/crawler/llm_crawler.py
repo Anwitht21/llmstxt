@@ -61,39 +61,34 @@ class LLMCrawler:
                 try:
                     await self.log(f"Visiting: {url}")
                     html = None
-                    httpx_html = None
 
-                    try:
-                        await self.log(f"  → Trying httpx...")
-                        response = await client.get(url)
-                        response.raise_for_status()
-                        httpx_html = response.text
-
-                        if has_meaningful_content(httpx_html):
-                            await self.log(f"  ✓ httpx succeeded")
-                            html = httpx_html
-                        else:
-                            await self.log(f"  ✗ httpx returned empty/blocked content")
-
-                    except Exception as httpx_error:
-                        await self.log(f"  ✗ httpx failed: {str(httpx_error)}")
-
-                    if html is None and self.brightdata_client is not None:
+                    if self.brightdata_client is not None:
                         try:
-                            await self.log(f"  → Escalating to Bright Data Scraping Browser...")
-                            brightdata_html = await self.brightdata_client.fetch(url)
+                            await self.log(f"  → Using Bright Data Scraping Browser...")
+                            html = await self.brightdata_client.fetch(url)
                             await self.log(f"  ✓ Scraping Browser succeeded")
-                            html = brightdata_html
-
                         except Exception as brightdata_error:
                             await self.log(f"  ✗ Scraping Browser failed: {str(brightdata_error)}")
+                            raise ValueError(f"Browser scraping failed: {str(brightdata_error)}")
+                    else:
+                        try:
+                            await self.log(f"  → Using httpx...")
+                            response = await client.get(url)
+                            response.raise_for_status()
+                            html = response.text
 
-                            if httpx_html is not None:
-                                await self.log(f"  → Falling back to httpx result")
-                                html = httpx_html
+                            if not has_meaningful_content(html):
+                                await self.log(f"  ✗ httpx returned empty/blocked content")
+                                raise ValueError("httpx returned empty/blocked content")
+
+                            await self.log(f"  ✓ httpx succeeded")
+
+                        except Exception as httpx_error:
+                            await self.log(f"  ✗ httpx failed: {str(httpx_error)}")
+                            raise ValueError(f"httpx failed: {str(httpx_error)}")
 
                     if html is None:
-                        raise ValueError("Failed to fetch content with both httpx and Scraping Browser")
+                        raise ValueError("Failed to fetch content")
 
                     soup = BeautifulSoup(html, 'html.parser')
 
