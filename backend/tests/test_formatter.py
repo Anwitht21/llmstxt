@@ -1,5 +1,5 @@
 import pytest
-from formatter import is_secondary_section, format_llms_txt, SECONDARY_PATH_PATTERNS
+from formatter import is_secondary_section, format_llms_txt, get_md_url, get_md_url_map, SECONDARY_PATH_PATTERNS
 from crawler import PageInfo
 
 
@@ -56,8 +56,8 @@ class TestFormatterOutput:
 
     def test_no_pages_returns_fallback(self):
         result = format_llms_txt("https://example.com", [])
-        assert "# https://example.com" in result
-        assert "No content available" in result
+        assert "# example.com" in result
+        assert "> No content available" in result
 
     def test_only_homepage_no_sections(self):
         pages = [
@@ -110,7 +110,7 @@ class TestFormatterOutput:
 
         assert "## Optional" not in result
         assert "## Docs" in result
-        assert "## Api" in result
+        assert "## API" in result
 
     def test_all_secondary_pages_creates_only_optional(self):
         pages = [
@@ -156,7 +156,7 @@ class TestFormatterOutput:
         result = format_llms_txt("https://example.com", pages)
 
         assert "## Docs" in result
-        assert "## Api" in result
+        assert "## API" in result
         assert "## Optional" in result
 
         lines = result.split('\n')
@@ -172,7 +172,7 @@ class TestFormatterOutput:
         ]
         result = format_llms_txt("https://example.com", pages)
 
-        assert "## Api Reference" in result
+        assert "## API Reference" in result
         assert "## User Guide" in result
 
     def test_empty_description_uses_snippet(self):
@@ -190,7 +190,8 @@ class TestFormatterOutput:
         ]
         result = format_llms_txt("https://example.com", pages)
 
-        assert "# Home" in result
+        assert "# Example" in result  # Generic "Home" falls back to domain
+        assert "## Main" in result  # Root-level pages go to Main section
 
 
 class TestPatternCoverage:
@@ -230,3 +231,226 @@ class TestPatternCoverage:
         for pattern in archive_patterns:
             assert any(pattern in p for p in SECONDARY_PATH_PATTERNS)
             assert is_secondary_section(pattern)
+
+
+class TestSpecCompliance:
+    """Test llmstxt.org specification compliance."""
+
+    def test_query_params_stripped(self):
+        """URLs with query params should have clean section names."""
+        pages = [
+            PageInfo("https://example.com", "Home", "Site", ""),
+            PageInfo("https://example.com/docs?page=2", "Page 2", "Docs", ""),
+        ]
+        result = format_llms_txt("https://example.com", pages)
+        assert "## Docs" in result
+        assert "?page=2" not in result
+
+    def test_url_fragments_stripped(self):
+        """URLs with fragments should have clean section names."""
+        pages = [
+            PageInfo("https://example.com", "Home", "Site", ""),
+            PageInfo("https://example.com/api#section", "API", "API docs", ""),
+        ]
+        result = format_llms_txt("https://example.com", pages)
+        assert "## API" in result
+        assert "#section" not in result
+
+    def test_generic_title_uses_domain(self):
+        """Generic homepage titles should fallback to domain."""
+        pages = [
+            PageInfo("https://example.com", "Home", "A test site", ""),
+        ]
+        result = format_llms_txt("https://example.com", pages)
+        assert "# Example" in result
+        assert "# Home" not in result
+
+    def test_welcome_title_uses_domain(self):
+        """'Welcome' title should fallback to domain."""
+        pages = [
+            PageInfo("https://docs.python.org", "Welcome", "Python docs", ""),
+        ]
+        result = format_llms_txt("https://docs.python.org", pages)
+        assert "# Docs Python" in result
+        assert "# Welcome" not in result
+
+    def test_abbreviations_preserved(self):
+        """Common abbreviations should be uppercase."""
+        pages = [
+            PageInfo("https://example.com", "Home", "Site", ""),
+            PageInfo("https://example.com/api-docs", "API Docs", "API", ""),
+            PageInfo("https://example.com/rest-api", "REST", "REST API", ""),
+            PageInfo("https://example.com/sdk", "SDK", "Software Development Kit", ""),
+        ]
+        result = format_llms_txt("https://example.com", pages)
+        assert "## API Docs" in result
+        assert "## REST API" in result
+        assert "## SDK" in result
+
+    def test_empty_description_no_colon(self):
+        """Links without descriptions should not have trailing colon."""
+        pages = [
+            PageInfo("https://example.com", "Home", "Site", ""),
+            PageInfo("https://example.com/docs", "Docs", "", ""),
+        ]
+        result = format_llms_txt("https://example.com", pages)
+        assert "- [Docs](https://example.com/docs)\n" in result
+        assert "- [Docs](https://example.com/docs):" not in result
+
+    def test_blockquote_fallback_chain(self):
+        """Blockquote should fallback: description → snippet → generic."""
+        # Test empty description uses snippet
+        pages = [PageInfo("https://example.com", "Site", "", "This is snippet")]
+        result = format_llms_txt("https://example.com", pages)
+        assert "> This is snippet" in result
+
+        # Test both empty uses generic
+        pages = [PageInfo("https://example.com", "Site", "", "")]
+        result = format_llms_txt("https://example.com", pages)
+        assert "> No description available" in result
+
+    def test_blockquote_truncation_with_ellipsis(self):
+        """Blockquote descriptions over 200 chars should get ellipsis."""
+        long_desc = "x" * 250
+        pages = [PageInfo("https://example.com", "Site", long_desc, "")]
+        result = format_llms_txt("https://example.com", pages)
+        assert "> " + "x" * 200 + "..." in result
+
+    def test_link_description_truncation_with_ellipsis(self):
+        """Link descriptions over 150 chars should get ellipsis."""
+        long_desc = "y" * 200
+        pages = [
+            PageInfo("https://example.com", "Home", "Site", ""),
+            PageInfo("https://example.com/docs", "Docs", long_desc, ""),
+        ]
+        result = format_llms_txt("https://example.com", pages)
+        assert "y" * 150 + "..." in result
+
+    def test_empty_pages_uses_domain_in_title(self):
+        """Empty pages list should use domain in fallback."""
+        result = format_llms_txt("https://www.example.com", [])
+        assert "# www.example.com" in result
+        assert "> No content available" in result
+
+    def test_api_section_uppercase(self):
+        """API in section names should be fully uppercase."""
+        pages = [
+            PageInfo("https://example.com", "Site", "Test", ""),
+            PageInfo("https://example.com/api", "API", "API docs", ""),
+        ]
+        result = format_llms_txt("https://example.com", pages)
+        assert "## API" in result
+        assert "## Api" not in result
+
+class TestMarkdownVersions:
+    """Test .md version URL handling per llmstxt.org spec."""
+
+    def test_md_url_construction_html_file(self):
+        """HTML files should append .md to the full filename."""
+        result = get_md_url("https://example.com/page.html")
+        assert result == "https://example.com/page.html.md"
+
+    def test_md_url_construction_directory(self):
+        """Directories should append index.html.md."""
+        result = get_md_url("https://example.com/docs/")
+        assert result == "https://example.com/docs/index.html.md"
+
+    def test_md_url_construction_no_extension(self):
+        """URLs without extensions should append .md."""
+        result = get_md_url("https://example.com/api")
+        assert result == "https://example.com/api.md"
+
+    def test_md_url_construction_root(self):
+        """Root URLs should get index.html.md."""
+        result = get_md_url("https://example.com/")
+        assert result == "https://example.com/index.html.md"
+
+    def test_format_with_md_url_map(self):
+        """formatter should use .md URLs when provided in map."""
+        pages = [
+            PageInfo("https://example.com", "Home", "Homepage", ""),
+            PageInfo("https://example.com/docs", "Docs", "Documentation", ""),
+            PageInfo("https://example.com/api", "API", "API reference", ""),
+        ]
+
+        # Simulate that docs has .md version but api doesn't
+        md_map = {
+            "https://example.com/docs": "https://example.com/docs.md",
+            "https://example.com/api": "https://example.com/api",
+        }
+
+        result = format_llms_txt("https://example.com", pages, md_map)
+
+        # Docs should use .md URL
+        assert "https://example.com/docs.md" in result
+        # API should use regular URL
+        assert "https://example.com/api)" in result
+        assert "https://example.com/api.md" not in result
+
+    def test_format_without_md_url_map(self):
+        """formatter should work normally without md_url_map."""
+        pages = [
+            PageInfo("https://example.com", "Home", "Homepage", ""),
+            PageInfo("https://example.com/docs", "Docs", "Documentation", ""),
+        ]
+
+        # No md_map provided
+        result = format_llms_txt("https://example.com", pages)
+
+        # Should use regular URLs
+        assert "https://example.com/docs)" in result
+        assert ".md" not in result
+
+    @pytest.mark.asyncio
+    async def test_get_md_url_map_rejects_html_content_type(self, monkeypatch):
+        """get_md_url_map should reject URLs that return text/html (SPA shells)"""
+        from unittest.mock import AsyncMock, MagicMock
+        import httpx
+
+        pages = [
+            PageInfo("https://resy.com/about", "About", "About page", ""),
+        ]
+
+        # Mock httpx.AsyncClient to return text/html content-type
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {'content-type': 'text/html'}
+
+        mock_client = MagicMock()
+        mock_client.head = AsyncMock(return_value=mock_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+
+        monkeypatch.setattr("httpx.AsyncClient", lambda *args, **kwargs: mock_client)
+
+        result = await get_md_url_map(pages)
+
+        # Should NOT use .md URL because content-type is text/html
+        assert result["https://resy.com/about"] == "https://resy.com/about"
+        assert ".md" not in result["https://resy.com/about"]
+
+    @pytest.mark.asyncio
+    async def test_get_md_url_map_accepts_text_plain_content_type(self, monkeypatch):
+        """get_md_url_map should accept URLs that return text/plain"""
+        from unittest.mock import AsyncMock, MagicMock
+
+        pages = [
+            PageInfo("https://example.com/docs", "Docs", "Documentation", ""),
+        ]
+
+        # Mock httpx.AsyncClient to return text/plain content-type
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {'content-type': 'text/plain; charset=utf-8'}
+
+        mock_client = MagicMock()
+        mock_client.head = AsyncMock(return_value=mock_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+
+        monkeypatch.setattr("httpx.AsyncClient", lambda *args, **kwargs: mock_client)
+
+        result = await get_md_url_map(pages)
+
+        # Should use .md URL because content-type is text/plain
+        assert result["https://example.com/docs"] == "https://example.com/docs.md"

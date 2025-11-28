@@ -48,7 +48,9 @@ async def get_md_url_map(pages: list[PageInfo]) -> Dict[str, str]:
             try:
                 response = await client.head(md_url, follow_redirects=True)
                 if response.status_code == 200:
-                    return (clean, md_url)
+                    content_type = response.headers.get('content-type', '').lower()
+                    if any(ct in content_type for ct in ['text/markdown', 'text/plain', 'text/x-markdown', 'application/octet-stream']):
+                        return (clean, md_url)
             except:
                 pass
             return (clean, clean)
