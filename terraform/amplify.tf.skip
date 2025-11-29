@@ -1,0 +1,57 @@
+# AWS Amplify App for Next.js frontend
+resource "aws_amplify_app" "llmstxt_frontend" {
+  name         = "llmstxt-frontend"
+  repository   = var.github_repository
+  access_token = var.github_token != "" ? var.github_token : null
+
+  # Build settings
+  build_spec = <<-EOT
+    version: 1
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - cd frontend
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: frontend/.next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - frontend/node_modules/**/*
+  EOT
+
+  # Environment variables
+  environment_variables = {
+    NEXT_PUBLIC_API_URL = "http://${aws_lb.llmstxt.dns_name}"
+  }
+
+  # Enable auto branch creation
+  enable_auto_branch_creation = true
+  enable_branch_auto_build    = true
+
+  tags = {
+    Name        = "llmstxt-frontend"
+    Environment = var.environment
+  }
+}
+
+# Main branch
+resource "aws_amplify_branch" "main" {
+  app_id      = aws_amplify_app.llmstxt_frontend.id
+  branch_name = "main"
+
+  framework = "Next.js - SSR"
+  stage     = "PRODUCTION"
+
+  enable_auto_build = true
+
+  tags = {
+    Name        = "llmstxt-frontend-main"
+    Environment = var.environment
+  }
+}

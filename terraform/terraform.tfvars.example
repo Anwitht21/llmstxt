@@ -1,0 +1,38 @@
+# AWS Configuration
+aws_region  = "us-east-1"
+environment = "production"
+
+# Supabase Configuration
+supabase_url = "https://your-project.supabase.co"
+supabase_key = "your_supabase_anon_key"
+
+# Cloudflare R2 Configuration
+r2_endpoint      = "https://your-account-id.r2.cloudflarestorage.com"
+r2_access_key    = "your_r2_access_key"
+r2_secret_key    = "your_r2_secret_key"
+r2_bucket        = "llmstxt"
+r2_public_domain = "your-r2-public-domain.com"
+
+# Optional API Keys
+brightdata_api_key      = ""
+openrouter_api_key      = ""
+llm_enhancement_enabled = "false"
+
+# Network Configuration (use your VPC and subnet IDs)
+# To get default VPC: aws ec2 describe-vpcs --filters "Name=isDefault,Values=true"
+# To get subnets: aws ec2 describe-subnets --filters "Name=vpc-id,Values=<vpc-id>"
+vpc_id     = "vpc-xxxxxxxxx"
+subnet_ids = ["subnet-xxxxxxxxx", "subnet-yyyyyyyyy"]
+
+# Application Configuration
+cors_origins = "*"
+cron_secret  = "your-secure-random-secret-token"
+
+# Frontend Configuration
+github_repository = "https://github.com/your-username/llmstxt"
+
+# Optional: Custom domain for Amplify
+# domain_name = "yourdomain.com"
+
+# Optional: HTTPS certificate ARN
+# acm_certificate_arn = "arn:aws:acm:region:account:certificate/xxx"
