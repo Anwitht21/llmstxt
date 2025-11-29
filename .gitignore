@@ -60,9 +60,9 @@ htmlcov/
 # Docker
 *.log
 
-# Lambda
-backend/lambda-deployment.zip
-backend/package/
+# Lambda/Deployment
+backend/deployment/lambda-deployment.zip
+backend/deployment/package/
 
 # Terraform
 terraform/*.tfvars
