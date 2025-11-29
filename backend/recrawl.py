@@ -58,7 +58,16 @@ async def recrawl_due_sites() -> dict:
                 except Exception as e:
                     print(f"Error checking sitemap for {site.base_url}: {e}")
 
-            crawler = LLMCrawler(site.base_url, site.max_pages, site.desc_length, no_op_log)
+            crawler = LLMCrawler(
+                site.base_url,
+                site.max_pages,
+                site.desc_length,
+                no_op_log,
+                brightdata_api_key=settings.brightdata_api_key,
+                brightdata_enabled=settings.brightdata_enabled,
+                brightdata_zone=settings.brightdata_zone,
+                brightdata_password=settings.brightdata_password
+            )
             pages = await crawler.run()
 
             # Check for .md versions (per llmstxt.org spec)
