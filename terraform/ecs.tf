@@ -61,7 +61,8 @@ resource "aws_ecs_task_definition" "llmstxt_api" {
       { name = "OPENROUTER_API_KEY", value = var.openrouter_api_key },
       { name = "LLM_ENHANCEMENT_ENABLED", value = var.llm_enhancement_enabled },
       { name = "CORS_ORIGINS", value = var.cors_origins },
-      { name = "CRON_SECRET", value = var.cron_secret }
+      { name = "CRON_SECRET", value = var.cron_secret },
+      { name = "API_KEY", value = var.api_key }
     ]
 
     logConfiguration = {

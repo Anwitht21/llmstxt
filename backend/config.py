@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     supabase_url: str | None = None
     supabase_key: str | None = None
     cron_secret: str | None = None
+    api_key: str | None = None
     brightdata_api_key: str | None = None
     brightdata_enabled: bool = True
     brightdata_zone: str = "scraping_browser1"

@@ -98,6 +98,12 @@ variable "cron_secret" {
   sensitive   = true
 }
 
+variable "api_key" {
+  description = "API key for WebSocket authentication"
+  type        = string
+  sensitive   = true
+}
+
 # Frontend
 variable "github_repository" {
   description = "GitHub repository URL for Amplify (e.g., https://github.com/username/repo)"

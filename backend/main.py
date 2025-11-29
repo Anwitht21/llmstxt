@@ -71,7 +71,11 @@ async def trigger_site_recrawl(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.websocket("/ws/crawl")
-async def websocket_crawl(websocket: WebSocket):
+async def websocket_crawl(websocket: WebSocket, api_key: str = None):
+    if settings.api_key and api_key != settings.api_key:
+        await websocket.close(code=1008, reason="Unauthorized")
+        return
+
     await websocket.accept()
 
     try:
