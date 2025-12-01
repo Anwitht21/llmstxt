@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException, Request, Body
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException, Request, Body, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
 import json
@@ -25,13 +25,22 @@ app.add_middleware(
 async def health():
     return {"status": "ok"}
 
+async def run_recrawl_in_background():
+    """Run recrawl in background without blocking the response"""
+    try:
+        print("[RECRAWL] Starting background recrawl...")
+        results = await recrawl_due_sites()
+        print(f"[RECRAWL] Completed: {results}")
+    except Exception as e:
+        print(f"[RECRAWL] Error: {e}")
+
 @app.post("/internal/cron/recrawl")
-async def trigger_recrawl(x_cron_secret: str = Header(None)):
+async def trigger_recrawl(background_tasks: BackgroundTasks, x_cron_secret: str = Header(None)):
     if not settings.cron_secret or x_cron_secret != settings.cron_secret:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    results = await recrawl_due_sites()
-    return {"status": "completed", "results": results}
+    background_tasks.add_task(run_recrawl_in_background)
+    return {"status": "triggered", "message": "Recrawl started in background"}
 
 @app.post("/internal/hooks/site-changed")
 async def trigger_site_recrawl(

@@ -1,29 +1,37 @@
 import json
-import asyncio
-from recrawl import recrawl_due_sites
+import os
+import urllib.request
 
 def lambda_handler(event, context):
-    """
-    AWS Lambda handler for scheduled recrawl.
+    api_url = os.environ.get('API_URL', 'https://llmstxt-backend.leap-cc.com')
+    cron_secret = os.environ.get('CRON_SECRET')
 
-    Triggered by EventBridge on schedule.
-    """
+    if not cron_secret:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'CRON_SECRET not configured'})
+        }
+
     try:
-        # Run async recrawl function
-        results = asyncio.run(recrawl_due_sites())
+        req = urllib.request.Request(
+            f"{api_url}/internal/cron/recrawl",
+            method='POST',
+            headers={'X-Cron-Secret': cron_secret}
+        )
+
+        with urllib.request.urlopen(req, timeout=30) as response:
+            result = json.loads(response.read().decode())
 
         return {
             'statusCode': 200,
             'body': json.dumps({
-                'message': 'Recrawl completed',
-                'results': results
+                'message': 'Recrawl triggered successfully',
+                'result': result
             })
         }
     except Exception as e:
-        print(f"Error in lambda_handler: {e}")
+        print(f"Error triggering recrawl: {e}")
         return {
             'statusCode': 500,
-            'body': json.dumps({
-                'error': str(e)
-            })
+            'body': json.dumps({'error': str(e)})
         }
