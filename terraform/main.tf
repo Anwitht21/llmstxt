@@ -52,16 +52,8 @@ resource "aws_lambda_function" "llmstxt_auto_update" {
 
   environment {
     variables = {
-      SUPABASE_URL             = var.supabase_url
-      SUPABASE_KEY             = var.supabase_key
-      R2_ENDPOINT              = var.r2_endpoint
-      R2_ACCESS_KEY            = var.r2_access_key
-      R2_SECRET_KEY            = var.r2_secret_key
-      R2_BUCKET                = var.r2_bucket
-      R2_PUBLIC_DOMAIN         = var.r2_public_domain
-      BRIGHTDATA_API_KEY       = var.brightdata_api_key
-      OPENROUTER_API_KEY       = var.openrouter_api_key
-      LLM_ENHANCEMENT_ENABLED  = var.llm_enhancement_enabled
+      API_URL                  = "https://llmstxt-backend.leap-cc.com"
+      CRON_SECRET              = var.cron_secret
     }
   }
 
