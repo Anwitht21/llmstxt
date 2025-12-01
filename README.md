@@ -9,7 +9,7 @@ A production-grade web application that automatically generates and maintains `l
 
 ## 🚀 Live Demo
 
-**Production URL:** https://llmstxt-98nxjuyn6-anwith-telluris-projects.vercel.app/
+**Production URL:** https://llmstxt.vercel.app/
 
 ## 📋 Overview
 

@@ -376,7 +376,7 @@ terraform output acm_certificate_validation_options
 
 3. Add CNAME record to your DNS provider
 
-4. Wait for validation (can take up to 30 minutes)
+4. Wait for validation (can take some time to propogate)
 
 5. Create Route53 alias record pointing to ALB:
 ```bash
