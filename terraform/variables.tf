@@ -130,3 +130,9 @@ variable "github_token" {
 #   type        = string
 #   default     = ""
 # }
+
+# Monitoring
+variable "alert_email" {
+  description = "Email address for CloudWatch alerts"
+  type        = string
+}
