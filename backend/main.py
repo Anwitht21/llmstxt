@@ -26,7 +26,6 @@ async def health():
     return {"status": "ok"}
 
 async def run_recrawl_in_background():
-    """Run recrawl in background without blocking the response"""
     try:
         print("[RECRAWL] Starting background recrawl...")
         results = await recrawl_due_sites()
