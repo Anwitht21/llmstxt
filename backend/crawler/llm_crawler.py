@@ -39,6 +39,8 @@ class LLMCrawler:
 
     async def run(self) -> list[PageInfo]:
         pages = []
+        max_attempts = self.state.max_pages * 3  # Try up to 3x the target to handle failures
+        attempts = 0
 
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             sitemap_urls = await self._try_sitemap(client)
@@ -46,13 +48,16 @@ class LLMCrawler:
                 await self.log(f"Using sitemap: found {len(sitemap_urls)} URLs")
                 self.state.queue.clear()
                 self.state.queue.append(self.state.base_url)
-                for url in sitemap_urls[:self.state.max_pages]:
+                for url in sitemap_urls[:max_attempts]:  # Load more URLs to handle failures
                     if url != self.state.base_url:
                         self.state.queue.append(url)
             else:
                 await self.log("No sitemap found, using BFS crawl")
 
-            while self.state.queue and len(self.state.visited) < self.state.max_pages:
+            while (self.state.queue and
+                   len(pages) < self.state.max_pages and
+                   attempts < max_attempts):
+                attempts += 1
                 url = self.state.queue.popleft()
 
                 if url in self.state.visited:
@@ -61,31 +66,32 @@ class LLMCrawler:
                 try:
                     await self.log(f"Visiting: {url}")
                     html = None
+                    httpx_html = None
 
-                    if self.brightdata_client is not None:
+                    try:
+                        await self.log(f"  → Trying httpx...")
+                        response = await client.get(url)
+                        response.raise_for_status()
+                        httpx_html = response.text
+
+                        if has_meaningful_content(httpx_html):
+                            await self.log(f"  ✓ httpx succeeded")
+                            html = httpx_html
+                        else:
+                            await self.log(f"  ✗ httpx returned empty/blocked content")
+                    except Exception as httpx_error:
+                        await self.log(f"  ✗ httpx failed: {str(httpx_error)}")
+
+                    if html is None and self.brightdata_client is not None:
                         try:
-                            await self.log(f"  → Using Bright Data Scraping Browser...")
+                            await self.log(f"  → Escalating to Bright Data Scraping Browser...")
                             html = await self.brightdata_client.fetch(url)
                             await self.log(f"  ✓ Scraping Browser succeeded")
                         except Exception as brightdata_error:
                             await self.log(f"  ✗ Scraping Browser failed: {str(brightdata_error)}")
-                            raise ValueError(f"Browser scraping failed: {str(brightdata_error)}")
-                    else:
-                        try:
-                            await self.log(f"  → Using httpx...")
-                            response = await client.get(url)
-                            response.raise_for_status()
-                            html = response.text
-
-                            if not has_meaningful_content(html):
-                                await self.log(f"  ✗ httpx returned empty/blocked content")
-                                raise ValueError("httpx returned empty/blocked content")
-
-                            await self.log(f"  ✓ httpx succeeded")
-
-                        except Exception as httpx_error:
-                            await self.log(f"  ✗ httpx failed: {str(httpx_error)}")
-                            raise ValueError(f"httpx failed: {str(httpx_error)}")
+                            if httpx_html is not None:
+                                await self.log(f"  → Falling back to httpx result")
+                                html = httpx_html
 
                     if html is None:
                         raise ValueError("Failed to fetch content")
@@ -124,6 +130,9 @@ class LLMCrawler:
                     f"{stats['successful']} successful ({success_rate:.0f}%), "
                     f"~${stats['estimated_cost_usd']} estimated cost"
                 )
+
+        if len(pages) < self.state.max_pages:
+            await self.log(f"Warning: Only found {len(pages)} pages (requested {self.state.max_pages})")
 
         await self.log(f"Crawl complete: {len(pages)} pages")
         return pages

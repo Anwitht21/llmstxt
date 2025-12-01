@@ -9,7 +9,7 @@ FORMAT REQUIREMENTS (llmstxt.org spec):
 1. Exactly ONE H1 title (starts with `# `)
 2. ONE blockquote summary immediately after H1 (starts with `> `, under 200 characters)
 3. Sections use H2 headings (`## Section Name`)
-4. Links use format: `- [Link Text](url): Description under 150 chars`
+4. Links use format: `- [Link Text](url): Description under 150 chars [TAG: Optional]`
 5. Keep an "Optional" section for secondary content (privacy, terms, about, etc.)
 
 IMPROVEMENT GOALS:
@@ -34,15 +34,15 @@ INPUT:
 - [Home](https://cipherstash.com/): CipherStash homepage overview
 
 ## Products
-- [Protect.js SDK](https://github.com/cipherstash/protectjs): JS/TS encryption SDK  
-- [CipherStash Proxy](https://cipherstash.com/blog/introducing-proxy): Transparent SQL proxy for PostgreSQL  
+- [Protect.js SDK](https://github.com/cipherstash/protectjs): JS/TS encryption SDK [Integration]
+- [CipherStash Proxy](https://cipherstash.com/blog/introducing-proxy): Transparent SQL proxy for PostgreSQL [Security]
 - [ZeroKMS](https://cipherstash.com/): Key-management service powering encryption and audit logs
 
 ## Resources
 - [Blog](https://cipherstash.com/blog): Company blog and product updates  
 - [Case Studies](https://cipherstash.com/case-studies/journalia.md): Example use cases  
 - [Case Studies – BNDRY](https://cipherstash.com/case-studies/bndry.md): Another use case  
-- [FAQ](https://cipherstash.com/faq.md): Frequently asked questions  
+- [FAQ](https://cipherstash.com/faq.md): Frequently asked questions
 ```
 
 OUTPUT:
@@ -65,35 +65,23 @@ CipherStash enables trusted data access:
 1. Sensitive data is _only_ ever accessible by the appropriate person at the appropriate time  
 2. Every sensitive data access is recorded along with who accessed it for auditing purposes  
 
-## Products
-
-* CipherStash Protect  
-A JavaScript/TypeScript SDK that makes it easy to encrypt sensitive fields in your application—like names, emails, and health records—while retaining search and filtering capabilities. Built for fine-grained, claim-based access control and identity-bound encryption.
-
-- [Github Repo](https://github.com/cipherstash/protectjs)  
+## CipherStash Protect
+- [Protect.js SDK](https://github.com/cipherstash/protectjs) [Integration]
 - [Protect.js README](https://raw.githubusercontent.com/cipherstash/protectjs/refs/heads/main/packages/protect/README.md)  
 - [Protect.js Docs](https://raw.githubusercontent.com/cipherstash/protectjs/refs/heads/main/docs/README.md)
 
-* CipherStash Proxy  
-A drop-in proxy that sits between your application and your Postgres database. It transparently encrypts and decrypts targeted sensitive data on the fly, enabling powerful encryption-in-use with minimal code changes. Ideal for legacy systems or backend services that can't easily integrate an SDK.
-
-- [Github Repo](https://github.com/cipherstash/proxy)  
+## CipherStash Proxy  
+- [CipherStash Proxy](https://github.com/cipherstash/proxy) [Security]
 - [Proxy README](https://raw.githubusercontent.com/cipherstash/proxy/refs/heads/main/README.md)
 
-* CipherStash ZeroKMS  
-A key management service that flips traditional KMS on its head—keys are derived only when needed, based on user identity and access policies. ZeroKMS ensures that encryption keys are never stored and cannot be compromised at rest, enabling a truly zero-trust architecture.
-
-ZeroKMS is designed for high-performance workloads, and benchmarks show it can be up to 14× faster than AWS KMS for frequent encryption and decryption operations. This makes it ideal for modern applications that demand both speed and security without tradeoffs.
-
+##CipherStash ZeroKMS  
 - [ZeroKMS](https://cipherstash.com/products/zerokms)
 
 ## Case studies
-
 - [Journalia](https://cipherstash.com/case-studies/journalia.md)  
 - [BNDRY](https://cipherstash.com/case-studies/bndry.md)
 
 ## Blog & FAQ
-
 - [CipherStash Blog](https://cipherstash.com/blog)  
 - [FAQ](https://cipherstash.com/faq.md)
 ```
@@ -108,7 +96,7 @@ INPUT:
 
 ## Products
 - [Widget A](https://acme.io/products/widget-a): Widget A product page
-- [Widget B](https://acme.io/products/widget-b): Widget B product
+- [Widget B](https://acme.io/products/widget-b): Widget B product [Integration]
 
 ## Company
 - [About](https://acme.io/company/about): About us page
@@ -126,7 +114,7 @@ OUTPUT:
 
 ## Products
 - [Widget A](https://acme.io/products/widget-a): Advanced widget with real-time analytics and automation capabilities
-- [Widget B](https://acme.io/products/widget-b): Lightweight widget designed for small to medium businesses
+- [Widget B](https://acme.io/products/widget-b): Lightweight widget designed for small to medium businesses [Integration]
 
 ## Optional
 - [About](https://acme.io/company/about): Learn about Acme's mission and team
@@ -144,12 +132,12 @@ INPUT:
 
 ## Docs
 - [FastHTML concise guide](https://www.fastht.ml/docs/ref/concise_guide.html.md): Overview of FastHTML’s core patterns  
-- [HTMX reference](https://raw.githubusercontent.com/bigskysoftware/htmx/master/www/content/reference.md): Documentation for HTMX attributes and events  
-- [Starlette quick guide](https://gist.githubusercontent.com/jph00/e91192e9bdc1640f5421ce3c904f2efb/raw/61a2774912414029edaf1a55b506f0e283b93c46/starlette-quick.md): Reference for Starlette, the ASGI foundation  
+- [HTMX reference](https://raw.githubusercontent.com/bigskysoftware/htmx/master/www/content/reference.md): Documentation for HTMX attributes and events [Reference]
+- [Starlette quick guide](https://gist.githubusercontent.com/jph00/e91192e9bdc1640f5421ce3c904f2efb/raw/61a2774912414029edaf1a55b506f0e283b93c46/starlette-quick.md): Reference for Starlette, the ASGI foundation [Guide]
 
 ## API
-- [API List](https://www.fastht.ml/docs/apilist.txt): List of all FastHTML functions and methods  
-- [MonsterUI API List](https://raw.githubusercontent.com/AnswerDotAI/MonsterUI/refs/heads/main/docs/apilist.txt): API reference for MonsterUI components compatible with FastHTML  
+- [API List](https://www.fastht.ml/docs/apilist.txt): List of all FastHTML functions and methods [Reference]
+- [MonsterUI API List](https://raw.githubusercontent.com/AnswerDotAI/MonsterUI/refs/heads/main/docs/apilist.txt): API reference for MonsterUI components compatible with FastHTML [Reference]
 
 ## Examples
 - [Websockets application](https://raw.githubusercontent.com/AnswerDotAI/fasthtml/main/examples/basic_ws.py): Example using WebSockets with HTMX + FastHTML  
@@ -170,12 +158,12 @@ FastHTML lets you build modern, interactive web applications entirely in Python 
 
 ## Core Documentation & Quick Start
 - [Concise Guide](https://www.fastht.ml/docs/ref/concise_guide.html.md): Core guide explaining FastHTML’s idiomatic patterns and architecture  
-- [HTMX Reference](https://raw.githubusercontent.com/bigskysoftware/htmx/master/www/content/reference.md): Full reference of HTMX attributes, events, and usage for dynamic interactivity  
-- [Starlette Quick Guide](https://gist.githubusercontent.com/jph00/e91192e9bdc1640f5421ce3c904f2efb/raw/61a2774912414029edaf1a55b506f0e283b93c46/starlette-quick.md): ASGI fundamentals and Starlette reference used by FastHTML  
+- [HTMX Reference](https://raw.githubusercontent.com/bigskysoftware/htmx/master/www/content/reference.md): Full reference of HTMX attributes, events, and usage for dynamic interactivity [Reference]
+- [Starlette Quick Guide](https://gist.githubusercontent.com/jph00/e91192e9bdc1640f5421ce3c904f2efb/raw/61a2774912414029edaf1a55b506f0e283b93c46/starlette-quick.md): ASGI fundamentals and Starlette reference used by FastHTML [Guide]
 
 ## API Reference
-- [FastHTML API List](https://www.fastht.ml/docs/apilist.txt): Complete list of FastHTML methods, routing APIs, and built-in utilities  
-- [MonsterUI API List](https://raw.githubusercontent.com/AnswerDotAI/MonsterUI/refs/heads/main/docs/apilist.txt): Component library API for building UI elements compatible with FastHTML  
+- [FastHTML API List](https://www.fastht.ml/docs/apilist.txt): Complete list of FastHTML methods, routing APIs, and built-in utilities [Reference]
+- [MonsterUI API List](https://raw.githubusercontent.com/AnswerDotAI/MonsterUI/refs/heads/main/docs/apilist.txt): Component library API for building UI elements compatible with FastHTML [Reference]
 
 ## Example Applications
 - [WebSockets Example](https://raw.githubusercontent.com/AnswerDotAI/fasthtml/main/examples/basic_ws.py): Simple real-time app showcasing HTMX + WebSockets with FastHTML  

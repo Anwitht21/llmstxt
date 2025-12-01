@@ -2,6 +2,7 @@ from crawler import PageInfo
 from urllib.parse import urlparse, urlunparse
 import httpx
 from typing import Dict
+from tagger import assign_tags, format_description_with_tags
 
 SECONDARY_PATH_PATTERNS = [
     '/privacy', '/terms', '/legal', '/cookie', '/disclaimer',
@@ -130,9 +131,12 @@ def format_llms_txt(base_url: str, pages: list[PageInfo], md_url_map: Dict[str, 
 
         output_url = md_url_map.get(clean, clean) if md_url_map else clean
 
+        tags = assign_tags(page, section_name=section)
         desc = truncate(page.description, 150) if page.description else ""
+        desc_with_tags = format_description_with_tags(desc, tags)
+
         link_text = f"[{page.title}]({output_url})"
-        full_link = f"- {link_text}: {desc}" if desc else f"- {link_text}"
+        full_link = f"- {link_text}: {desc_with_tags}" if desc_with_tags else f"- {link_text}"
 
         sections[section].append(full_link)
 

@@ -159,10 +159,10 @@ export default function CrawlerControls({ onStartScan, onStopScan, isScanning }:
                 <Chrome className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <Label htmlFor="useBrightdata" className="cursor-pointer">
-                    Browser Scraping
+                    Smart Scraping
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Handle JavaScript-heavy websites
+                    Auto-escalate to browser for JS-heavy sites
                   </p>
                 </div>
               </div>

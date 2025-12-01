@@ -13,7 +13,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+backend/lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -58,3 +59,15 @@ htmlcov/
 
 # Docker
 *.log
+
+# Lambda/Deployment
+backend/deployment/lambda-deployment.zip
+backend/deployment/package/
+
+# Terraform
+terraform/*.tfvars
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+
+*.zip
