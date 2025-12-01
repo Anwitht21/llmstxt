@@ -20,7 +20,7 @@ This tool crawls websites, extracts structured content, and generates `llms.txt`
 - **Intelligent Crawling**: BFS traversal with configurable depth and page limits
 - **JavaScript Support**: Playwright integration for dynamic content via Brightdata
 - **Real-time Streaming**: WebSocket-based progress updates and logs
-- **LLM Enhancement**: AI-powered content optimization
+- **LLM Enhancement**: AI-powered content optimization (Grok 4.1-Fast)
 - **Automated Updates**: Scheduled recrawls via AWS Lambda + EventBridge
 - **Persistent Storage**: R2 object storage with public URLs
 - **API Security**: API key authentication for WebSocket endpoints
@@ -161,7 +161,7 @@ The generator adheres to the official specification from [llmstxt.org](https://l
    - **Description Length**: Character limit for excerpts (default: 500)
    - **Enable Auto-Update**: Schedule periodic recrawls (optional)
    - **Recrawl Interval**: Minutes between updates (default: 360)
-   - **LLM Enhancement**: AI-powered optimization (optional)
+   - **LLM Enhancement**: AI-powered optimization (Grok 4.1-Fast) (optional)
    - **Use Brightdata**: For JavaScript-heavy sites (optional)
 4. Click "Generate llms.txt"
 5. Watch real-time crawl progress
