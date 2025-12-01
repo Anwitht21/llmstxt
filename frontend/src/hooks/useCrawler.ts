@@ -27,7 +27,7 @@ export function useCrawler() {
 
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws/crawl"
     const apiKey = process.env.NEXT_PUBLIC_API_KEY
-    const wsUrlWithAuth = apiKey ? `${wsUrl}?api_key=${apiKey}` : wsUrl
+    const wsUrlWithAuth = apiKey ? `${wsUrl}?api_key=${encodeURIComponent(apiKey)}` : wsUrl
     const ws = new WebSocket(wsUrlWithAuth)
     wsRef.current = ws
 
