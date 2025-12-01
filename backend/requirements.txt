@@ -10,3 +10,4 @@ pytest
 pytest-asyncio
 supabase==2.10.0
 playwright
+PyJWT[crypto]

@@ -10,6 +10,7 @@ from config import settings
 from database import save_site_metadata, get_supabase_client
 from recrawl import recrawl_due_sites
 from formatter import format_llms_txt, get_md_url_map
+from jwt_auth import generate_token, validate_token
 
 app = FastAPI()
 
@@ -24,6 +25,14 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+@app.post("/auth/token")
+async def create_token(x_api_key: str = Header(None)):
+    if not settings.api_key or x_api_key != settings.api_key:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    token = generate_token()
+    return {"token": token, "expires_in": 300}
 
 async def run_recrawl_in_background():
     try:
@@ -79,10 +88,17 @@ async def trigger_site_recrawl(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.websocket("/ws/crawl")
-async def websocket_crawl(websocket: WebSocket, api_key: str = None):
-    if settings.api_key and api_key != settings.api_key:
-        await websocket.close(code=1008, reason="Unauthorized")
-        return
+async def websocket_crawl(websocket: WebSocket):
+    token = websocket.query_params.get("token")
+    if token:
+        if not validate_token(token):
+            await websocket.close(code=1008, reason="Invalid or expired token")
+            return
+    elif settings.api_key:
+        api_key = websocket.query_params.get("api_key")
+        if api_key != settings.api_key:
+            await websocket.close(code=1008, reason="Unauthorized")
+            return
 
     await websocket.accept()
 

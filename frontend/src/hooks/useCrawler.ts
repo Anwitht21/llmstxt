@@ -19,17 +19,25 @@ export function useCrawler() {
   const [isScanning, setIsScanning] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
 
-  const startScan = useCallback((payload: CrawlPayload) => {
+  const startScan = useCallback(async (payload: CrawlPayload) => {
     setLogs(["Connecting to crawler..."])
     setResult("")
     setHostedUrl("")
     setIsScanning(true)
 
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws/crawl"
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY
-    const wsUrlWithAuth = apiKey ? `${wsUrl}?api_key=${encodeURIComponent(apiKey)}` : wsUrl
-    const ws = new WebSocket(wsUrlWithAuth)
-    wsRef.current = ws
+
+    try {
+      const tokenResponse = await fetch('/api/auth/token', { method: 'POST' })
+      if (!tokenResponse.ok) {
+        setLogs((prev) => [...prev, "Failed to authenticate"])
+        setIsScanning(false)
+        return
+      }
+      const { token } = await tokenResponse.json()
+
+      const ws = new WebSocket(`${wsUrl}?token=${token}`)
+      wsRef.current = ws
 
     ws.onopen = () => {
       setLogs((prev) => [...prev, `Starting crawl of ${payload.url}...`])
@@ -56,6 +64,10 @@ export function useCrawler() {
     }
 
     ws.onclose = () => {
+      setIsScanning(false)
+    }
+    } catch (error) {
+      setLogs((prev) => [...prev, `Error fetching token: ${error}`])
       setIsScanning(false)
     }
   }, [])
